@@ -112,7 +112,7 @@ class Converter(object):
         # Subtitle
         y = opt['subtitle']
 
-        # Creates the new nested dictionary to preserve backwards compatability
+        # Creates the new nested dictionary to preserve backwards compatibility
         try:
             first = list(y.values())[0]
             if not isinstance(first, dict):

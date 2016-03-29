@@ -640,6 +640,7 @@ class H264Codec(VideoCodec):
         'quality': int,  # constant rate factor, range:0(lossless)-51(worst)
         # default:23, recommended: 18-28
         # http://mewiki.project357.com/wiki/X264_Settings#profile
+        'x264params': int,  # x264 parameters separated by colon
         'profile': str,  # default: not-set, for valid values see above link
         'level': float,  # default: not-set, values range from 3.0 to 4.2
         'tune': str,  # default: not-set, for valid values see above link
@@ -666,6 +667,8 @@ class H264Codec(VideoCodec):
             optlist.extend(['-preset', safe['preset']])
         if 'quality' in safe:
             optlist.extend(['-crf', str(safe['quality'])])
+        if 'x264params' in safe:
+            optlist.extend(['-x264params', str(safe['x264params'])])
         if 'profile' in safe:
             optlist.extend(['-profile:v', safe['profile']])
         if 'level' in safe:

@@ -21,8 +21,10 @@ class MkvtoMp4:
                  output_format='mp4',
                  video_codec=['h264', 'x264'],
                  video_bitrate=None,
+                 video_ratefactor=None,
                  video_width=None,
                  h264_level=None,
+                 x264_params=None,
                  qsv_decoder=True,
                  audio_codec=['ac3'],
                  audio_bitrate=256,
@@ -68,8 +70,10 @@ class MkvtoMp4:
         # Video settings
         self.video_codec = video_codec
         self.video_bitrate = video_bitrate
+        self.video_ratefactor = video_ratefactor
         self.video_width = video_width
         self.h264_level = h264_level
+        self.x264_params = x264_params
         self.qsv_decoder = qsv_decoder
         self.pix_fmt = pix_fmt
         # Audio settings
@@ -112,8 +116,10 @@ class MkvtoMp4:
         # Video settings
         self.video_codec = settings.vcodec
         self.video_bitrate = settings.vbitrate
+        self.video_ratefactor = settings.vratefactor
         self.video_width = settings.vwidth
         self.h264_level = settings.h264_level
+        self.x264_params = settings.x264_params
         self.qsv_decoder = settings.qsv_decoder
         self.pix_fmt = settings.pix_fmt
         # Audio settings
@@ -277,6 +283,11 @@ class MkvtoMp4:
         if self.pix_fmt and self.pix_fmt.lower() != info.video.pix_fmt.lower():
             vcodec = self.video_codec[0]
 
+        if self.video_ratefactor is not None:
+            self.log.debug("Using video rate factor.")
+            vcodec = self.video_codec[0]
+            vratefactor = self.video_ratefactor
+
         if self.video_bitrate is not None and vbr > self.video_bitrate:
             self.log.debug("Overriding video bitrate. Codec cannot be copied because video bitrate is too high.")
             vcodec = self.video_codec[0]
@@ -293,8 +304,13 @@ class MkvtoMp4:
             self.log.info("Video level %0.1f." % (info.video.video_level / 10))
             vcodec = self.video_codec[0]
 
+        if self.x264_params:
+            self.log.debug("Using the following x264 parameters: %s." % self.x264_params)
+            vcodec = self.video_codec[0]
+
         self.log.debug("Video codec: %s." % vcodec)
         self.log.debug("Video bitrate: %s." % vbitrate)
+        self.log.debug("Video rate factor: %s." % vratefactor)
 
         # Audio streams
         self.log.info("Reading audio streams.")
@@ -508,7 +524,7 @@ class MkvtoMp4:
                 self.log.info("Unable to download subtitles.", exc_info=True)
                 self.log.debug("Unable to download subtitles.", exc_info=True)
         # External subtitle import
-        if self.embedsubs:  # Don't bother if we're not embeddeding any subtitles
+        if self.embedsubs:  # Don't bother if we're not embedding any subtitles
             src = 1  # FFMPEG input source number
             for dirName, subdirList, fileList in os.walk(input_dir):
                 for fname in fileList:
@@ -558,7 +574,9 @@ class MkvtoMp4:
                 'codec': vcodec,
                 'map': info.video.index,
                 'bitrate': vbitrate,
-                'level': self.h264_level
+                'quality': vratefactor,
+                'level': self.h264_level,
+                'x264params': self.x264_params
             },
             'audio': audio_settings,
             'subtitle': subtitle_settings,
@@ -669,7 +687,7 @@ class MkvtoMp4:
                     os.chmod(outputfile, self.permissions)
                 except:
                     self.log.exception("Unable to set file permissions.")
-                # Cleanup
+                # Clean up
                 if self.removeFile(inputfile, replacement=outputfile):
                     return outputfile
                 else:

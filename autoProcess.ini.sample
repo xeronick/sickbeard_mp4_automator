@@ -27,8 +27,10 @@ delete_original = True
 relocate_moov = True
 video-codec = h264,x264
 video-bitrate =
+video-rate-factor =
 video-max-width =
 h264-max-level =
+x264-params =
 use-qsv-decoder-with-encoder = True
 ios-audio = True
 ios-first-track-only = False
@@ -52,6 +54,7 @@ sub-providers = addic7ed,podnapisi,thesubdb,opensubtitles
 permissions = 0777
 post-process = False
 pix-fmt =
+
 
 [CouchPotato]
 host = localhost

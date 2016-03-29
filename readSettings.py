@@ -73,8 +73,10 @@ class ReadSettings:
                         'audio-channel-bitrate': '256',
                         'video-codec': 'h264, x264',
                         'video-bitrate': '',
+                        'video-rate-factor': '',
                         'video-max-width': '',
                         'h264-max-level': '',
+                        'x264-params': '',
                         'use-qsv-decoder-with-encoder': 'True',
                         'subtitle-codec': 'mov_text',
                         'subtitle-language': '',
@@ -317,6 +319,19 @@ class ReadSettings:
                 log.exception("Invalid video bitrate, defaulting to no video bitrate cap.")
                 self.vbitrate = None
 
+        self.vratefactor = config.get(section, "video-rate-factor")
+        if self.vratefactor == '':
+            self.vratefactor = None
+        else:
+            try:
+                self.vratefactor = int(self.vratefactor)
+                if not (self.vratefactor > 0):
+                    self.vratefactor = None
+                    log.warning("Video rate factor must be greater than 0, defaulting to no video rate factor cap.")
+            except:
+                log.exception("Invalid video rate factor, defaulting to no video rate factor cap.")
+                self.vratefactor = None
+
         self.vwidth = config.get(section, "video-max-width")
         if self.vwidth == '':
             self.vwidth = None
@@ -336,6 +351,10 @@ class ReadSettings:
             except:
                 log.exception("Invalid h264 level, defaulting to none.")
                 self.h264_level = None
+
+        self.x264_params = config.get(section, "x264-params").lower()
+        if self.x264_params == '':
+            self.x264_params = None
 
         self.qsv_decoder = config.getboolean(section, "use-qsv-decoder-with-encoder")  # Use Intel QuickSync Decoder when using QuickSync Encoder
         self.pix_fmt = config.get(section, "pix-fmt").strip().lower()
@@ -357,7 +376,7 @@ class ReadSettings:
             log.warning("Invalid subtitle codec, defaulting to '%s'." % self.scodec)
 
         if self.embedsubs and self.scodec not in valid_internal_subcodecs:
-            log.warning("Invalid interal subtitle codec %s, defaulting to 'mov_text'." % self.scodec)
+            log.warning("Invalid internal subtitle codec %s, defaulting to 'mov_text'." % self.scodec)
             self.scodec = 'mov_text'
 
         if not self.embedsubs and self.scodec not in valid_external_subcodecs:
@@ -374,11 +393,11 @@ class ReadSettings:
         if self.subencoding == '':
             self.subencoding = None
 
-        self.adl = config.get(section, 'audio-default-language').strip().lower()  # What language to default an undefinied audio language tag to. If blank, it will remain undefined. This is useful for single language releases which tend to leave things tagged as und
+        self.adl = config.get(section, 'audio-default-language').strip().lower()  # What language to default an undefined audio language tag to. If blank, it will remain undefined. This is useful for single language releases which tend to leave things tagged as und
         if self.adl == "" or len(self.adl) > 3:
             self.adl = None
 
-        self.sdl = config.get(section, 'subtitle-default-language').strip().lower()  # What language to default an undefinied subtitle language tag to. If blank, it will remain undefined. This is useful for single language releases which tend to leave things tagged as und
+        self.sdl = config.get(section, 'subtitle-default-language').strip().lower()  # What language to default an undefined subtitle language tag to. If blank, it will remain undefined. This is useful for single language releases which tend to leave things tagged as und
         if self.sdl == ""or len(self.sdl) > 3:
             self.sdl = None
         # Prevent incompatible combination of settings
