@@ -27,13 +27,12 @@ class BaseCodec(object):
         # Only copy options that are expected and of correct type
         # (and do typecasting on them)
         for k, v in opts.items():
-            if k in self.encoder_options:
+            if k in self.encoder_options and v is not None:
                 typ = self.encoder_options[k]
                 try:
                     safe[k] = typ(v)
                 except:
                     pass
-
         return safe
 
 
@@ -169,15 +168,19 @@ class SubtitleCodec(BaseCodec):
         else:
             s = str(0)
 
+        if 'encoding' in safe:
+            if not safe['encoding']:
+                del safe['encoding']
+
         safe = self._codec_specific_parse_options(safe)
 
         optlist = []
+        if 'encoding' in safe:
+            optlist.extend(['-sub_charenc', str(safe['encoding'])])
         optlist.extend(['-c:s:' + stream, self.ffmpeg_codec_name])
         stream = str(stream)
         if 'map' in safe:
             optlist.extend(['-map', s + ':' + str(safe['map'])])
-        if 'encoding' in safe:
-            optlist.extend(['-sub_charenc', str(safe['encoding'])])
         if 'path' in safe:
             optlist.extend(['-i', str(safe['path'])])
         if 'default' in safe:
@@ -688,7 +691,7 @@ class H264QSV(H264Codec):
 
     def _codec_specific_produce_ffmpeg_list(self, safe, stream=0):
         optlist = []
-        optlist.extend(['-lookahead', '0'])
+        optlist.extend(['-look_ahead', '0'])
         return optlist
 
 

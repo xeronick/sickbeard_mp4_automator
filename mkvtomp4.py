@@ -23,6 +23,7 @@ class MkvtoMp4:
                  video_bitrate=None,
                  video_width=None,
                  h264_level=None,
+                 qsv_decoder=True,
                  audio_codec=['ac3'],
                  audio_bitrate=256,
                  iOS=False,
@@ -33,6 +34,7 @@ class MkvtoMp4:
                  adl=None,
                  sdl=None,
                  scodec='mov_text',
+                 subencoding='utf-8',
                  downloadsubs=True,
                  processMP4=False,
                  copyto=None,
@@ -41,7 +43,8 @@ class MkvtoMp4:
                  providers=['addic7ed', 'podnapisi', 'thesubdb', 'opensubtitles'],
                  permissions=int("777", 8),
                  pix_fmt=None,
-                 logger=None):
+                 logger=None,
+                 threads='auto'):
         # Setup Logging
         if logger:
             self.log = logger
@@ -51,6 +54,7 @@ class MkvtoMp4:
         # Settings
         self.FFMPEG_PATH = FFMPEG_PATH
         self.FFPROBE_PATH = FFPROBE_PATH
+        self.threads = threads
         self.delete = delete
         self.output_extension = output_extension
         self.output_format = output_format
@@ -66,6 +70,7 @@ class MkvtoMp4:
         self.video_bitrate = video_bitrate
         self.video_width = video_width
         self.h264_level = h264_level
+        self.qsv_decoder = qsv_decoder
         self.pix_fmt = pix_fmt
         # Audio settings
         self.audio_codec = audio_codec
@@ -82,6 +87,7 @@ class MkvtoMp4:
         self.downloadsubs = downloadsubs
         self.subproviders = providers
         self.embedsubs = embedsubs
+        self.subencoding = subencoding
 
         # Import settings
         if settings is not None:
@@ -92,6 +98,7 @@ class MkvtoMp4:
     def importSettings(self, settings):
         self.FFMPEG_PATH = settings.ffmpeg
         self.FFPROBE_PATH = settings.ffprobe
+        self.threads = settings.threads
         self.delete = settings.delete
         self.output_extension = settings.output_extension
         self.output_format = settings.output_format
@@ -107,6 +114,7 @@ class MkvtoMp4:
         self.video_bitrate = settings.vbitrate
         self.video_width = settings.vwidth
         self.h264_level = settings.h264_level
+        self.qsv_decoder = settings.qsv_decoder
         self.pix_fmt = settings.pix_fmt
         # Audio settings
         self.audio_codec = settings.acodec
@@ -123,6 +131,7 @@ class MkvtoMp4:
         self.downloadsubs = settings.downloadsubs
         self.subproviders = settings.subproviders
         self.embedsubs = settings.embedsubs
+        self.subencoding = settings.subencoding
 
         self.log.debug("Settings imported.")
 
@@ -197,7 +206,7 @@ class MkvtoMp4:
     def validSource(self, inputfile):
         input_dir, filename, input_extension = self.parseFile(inputfile)
         # Make sure the input_extension is some sort of recognized extension, and that the file actually exists
-        if (input_extension in valid_input_extensions or input_extension in valid_output_extensions):
+        if (input_extension.lower() in valid_input_extensions or input_extension.lower() in valid_output_extensions):
             if (os.path.isfile(inputfile)):
                 self.log.debug("%s is valid." % inputfile)
                 return True
@@ -212,7 +221,7 @@ class MkvtoMp4:
     def needProcessing(self, inputfile):
         input_dir, filename, input_extension = self.parseFile(inputfile)
         # Make sure input and output extensions are compatible. If processMP4 is true, then make sure the input extension is a valid output extension and allow to proceed as well
-        if (input_extension in valid_input_extensions or (self.processMP4 is True and input_extension in valid_output_extensions)) and self.output_extension in valid_output_extensions:
+        if (input_extension.lower() in valid_input_extensions or (self.processMP4 is True and input_extension.lower() in valid_output_extensions)) and self.output_extension.lower() in valid_output_extensions:
             self.log.debug("%s needs processing." % inputfile)
             return True
         else:
@@ -289,6 +298,22 @@ class MkvtoMp4:
 
         # Audio streams
         self.log.info("Reading audio streams.")
+
+        overrideLang = True
+        for a in info.audio:
+            try:
+                if a.metadata['language'].strip() == "" or a.metadata['language'] is None:
+                    a.metadata['language'] = 'und'
+            except KeyError:
+                a.metadata['language'] = 'und'
+            if (a.metadata['language'] == 'und' and self.adl) or (self.awl and a.metadata['language'].lower() in self.awl):
+                overrideLang = False
+                break
+
+        if overrideLang:
+            self.awl = None
+            self.log.info("No audio streams detected in any appropriate language, relaxing restrictions so there will be some audio stream present.")
+
         audio_settings = {}
         l = 0
         for a in info.audio:
@@ -400,7 +425,7 @@ class MkvtoMp4:
                         'map': s.index,
                         'codec': self.scodec,
                         'language': s.metadata['language'],
-                        'encoding': 'UTF-8'
+                        'encoding': self.subencoding,
                         # 'forced': s.sub_forced,
                         # 'default': s.sub_default
                     }})
@@ -537,7 +562,13 @@ class MkvtoMp4:
             },
             'audio': audio_settings,
             'subtitle': subtitle_settings,
+            'preopts': ['-fix_sub_duration'],
+            'postopts': ['-threads', self.threads]
         }
+
+        # If using h264qsv, add the codec in front of the input for decoding
+        if vcodec == "h264qsv" and info.video.codec.lower() == "h264" and self.qsv_decoder and (info.video.video_level / 10) < 5:
+            options['preopts'].extend(['-vcodec', 'h264_qsv'])
 
         # Add width option
         if vwidth:
@@ -578,7 +609,7 @@ class MkvtoMp4:
                     i += i
                 self.log.debug("Unable to rename inputfile. Setting output file name to %s." % outputfile)
 
-        conv = Converter(self.FFMPEG_PATH, self.FFPROBE_PATH).convert(inputfile, outputfile, options, timeout=None, preopts=['-fix_sub_duration'], postopts=['-threads', 'auto'])
+        conv = Converter(self.FFMPEG_PATH, self.FFPROBE_PATH).convert(inputfile, outputfile, options, timeout=None, preopts=options['preopts'], postopts=options['postopts'])
 
         try:
             for timecode in conv:

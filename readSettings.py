@@ -56,6 +56,7 @@ class ReadSettings:
         # Default MP4 conversion settings
         mp4_defaults = {'ffmpeg': 'ffmpeg.exe',
                         'ffprobe': 'ffprobe.exe',
+                        'threads': 'auto',
                         'output_directory': '',
                         'copy_to': '',
                         'move_to': '',
@@ -74,9 +75,11 @@ class ReadSettings:
                         'video-bitrate': '',
                         'video-max-width': '',
                         'h264-max-level': '',
+                        'use-qsv-decoder-with-encoder': 'True',
                         'subtitle-codec': 'mov_text',
                         'subtitle-language': '',
                         'subtitle-default-language': '',
+                        'subtitle-encoding': 'utf-8',
                         'convert-mp4': 'False',
                         'fullpathguess': 'True',
                         'tagfile': 'True',
@@ -182,6 +185,13 @@ class ReadSettings:
         section = "MP4"
         self.ffmpeg = os.path.normpath(self.raw(config.get(section, "ffmpeg")))  # Location of FFMPEG.exe
         self.ffprobe = os.path.normpath(self.raw(config.get(section, "ffprobe")))  # Location of FFPROBE.exe
+        self.threads = config.get(section, "threads")  # Number of FFMPEG threads
+        try:
+            if int(self.threads) < 1:
+                self.threads = "auto"
+        except:
+            self.threads = "auto"
+
         self.output_dir = config.get(section, "output_directory")
         if self.output_dir == '':
             self.output_dir = None
@@ -327,6 +337,7 @@ class ReadSettings:
                 log.exception("Invalid h264 level, defaulting to none.")
                 self.h264_level = None
 
+        self.qsv_decoder = config.getboolean(section, "use-qsv-decoder-with-encoder")  # Use Intel QuickSync Decoder when using QuickSync Encoder
         self.pix_fmt = config.get(section, "pix-fmt").strip().lower()
         if self.pix_fmt == '':
             self.pix_fmt = None
@@ -358,6 +369,10 @@ class ReadSettings:
             self.swl = None
         else:
             self.swl = self.swl.replace(' ', '').split(',')
+
+        self.subencoding = config.get(section, 'subtitle-encoding').strip().lower()
+        if self.subencoding == '':
+            self.subencoding = None
 
         self.adl = config.get(section, 'audio-default-language').strip().lower()  # What language to default an undefinied audio language tag to. If blank, it will remain undefined. This is useful for single language releases which tend to leave things tagged as und
         if self.adl == "" or len(self.adl) > 3:
