@@ -74,6 +74,7 @@ class ReadSettings:
                         'video-codec': 'h264, x264',
                         'video-bitrate': '',
                         'video-rate-factor': '',
+                        'video-frame-rate': '',
                         'video-max-width': '',
                         'h264-max-level': '',
                         'x264-params': '',
@@ -331,6 +332,19 @@ class ReadSettings:
             except:
                 log.exception("Invalid video rate factor, defaulting to no video rate factor cap.")
                 self.vratefactor = None
+
+        self.vframerate = config.get(section, "video-frame-rate")
+        if self.vframerate == '':
+            self.vframerate = None
+        else:
+            try:
+                self.vframerate = int(self.vframerate)
+                if not (self.vframerate > 0):
+                    self.vframerate = None
+                    log.warning("Video frame rate must be greater than 0, defaulting to existing frame rate.")
+            except:
+                log.exception("Invalid video frame rate, copying existing frame rate.")
+                self.vframerate = None
 
         self.vwidth = config.get(section, "video-max-width")
         if self.vwidth == '':

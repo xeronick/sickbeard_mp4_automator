@@ -22,6 +22,7 @@ class MkvtoMp4:
                  video_codec=['h264', 'x264'],
                  video_bitrate=None,
                  video_ratefactor=None,
+                 video_framerate=None,
                  video_width=None,
                  h264_level=None,
                  x264_params=None,
@@ -71,6 +72,7 @@ class MkvtoMp4:
         self.video_codec = video_codec
         self.video_bitrate = video_bitrate
         self.video_ratefactor = video_ratefactor
+        self.video_framerate = video_framerate
         self.video_width = video_width
         self.h264_level = h264_level
         self.x264_params = x264_params
@@ -117,6 +119,7 @@ class MkvtoMp4:
         self.video_codec = settings.vcodec
         self.video_bitrate = settings.vbitrate
         self.video_ratefactor = settings.vratefactor
+        self.video_framerate = settings.vframerate
         self.video_width = settings.vwidth
         self.h264_level = settings.h264_level
         self.x264_params = settings.x264_params
@@ -283,15 +286,20 @@ class MkvtoMp4:
         if self.pix_fmt and self.pix_fmt.lower() != info.video.pix_fmt.lower():
             vcodec = self.video_codec[0]
 
-        if self.video_ratefactor is not None:
-            self.log.debug("Using video rate factor.")
-            vcodec = self.video_codec[0]
-            vratefactor = self.video_ratefactor
-
         if self.video_bitrate is not None and vbr > self.video_bitrate:
             self.log.debug("Overriding video bitrate. Codec cannot be copied because video bitrate is too high.")
             vcodec = self.video_codec[0]
             vbitrate = self.video_bitrate
+
+        if self.video_ratefactor is not None:
+            self.log.debug("Using video rate factor instead of bitrate.")
+            vcodec = self.video_codec[0]
+            vratefactor = self.video_ratefactor
+            vbitrate = None
+
+        if self.video_framerate is not None:
+            self.log.debug("Changing video frame rate.")
+            vframerate = self.video_framerate
 
         if self.video_width is not None and self.video_width < info.video.video_width:
             self.log.debug("Video width is over the max width, it will be downsampled. Video stream can no longer be copied.")
@@ -575,6 +583,7 @@ class MkvtoMp4:
                 'map': info.video.index,
                 'bitrate': vbitrate,
                 'quality': vratefactor,
+                'fps': vframerate,
                 'level': self.h264_level,
                 'x264params': self.x264_params
             },

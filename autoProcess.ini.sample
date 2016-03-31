@@ -28,6 +28,7 @@ relocate_moov = True
 video-codec = h264,x264
 video-bitrate =
 video-rate-factor =
+video-frame-rate =
 video-max-width =
 h264-max-level =
 x264-params =
