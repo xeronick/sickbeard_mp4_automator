@@ -203,7 +203,7 @@ class VideoCodec(BaseCodec):
     parameters are:
       * codec (string) - video codec name
       * bitrate (string) - stream bitrate
-      * fps (integer) - frames per second
+      * fps (float) - frames per second
       * width (integer) - video width
       * height (integer) - video height
       * mode (string) - aspect preserval mode; one of:
@@ -229,7 +229,7 @@ class VideoCodec(BaseCodec):
     encoder_options = {
         'codec': str,
         'bitrate': int,
-        'fps': int,
+        'fps': float,
         'width': int,
         'height': int,
         'mode': str,

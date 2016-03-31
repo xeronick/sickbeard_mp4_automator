@@ -338,10 +338,7 @@ class ReadSettings:
             self.vframerate = None
         else:
             try:
-                self.vframerate = int(self.vframerate)
-                if not (self.vframerate > 0):
-                    self.vframerate = None
-                    log.warning("Video frame rate must be greater than 0, defaulting to existing frame rate.")
+                self.vframerate = float(self.vframerate)
             except:
                 log.exception("Invalid video frame rate, copying existing frame rate.")
                 self.vframerate = None
