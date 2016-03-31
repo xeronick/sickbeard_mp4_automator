@@ -89,6 +89,7 @@ class Converter(object):
         except IndexError:
             pass
 
+        audioFlag = 0
         for n in y:
             x = y[n]
 
@@ -105,9 +106,11 @@ class Converter(object):
             if c not in self.audio_codecs:
                 raise ConverterError('Requested unknown audio codec ' + str(c))
 
-            audio_options.extend(self.audio_codecs[c]().parse_options(x, n))
+            if audioFlag == 0:
+                audio_options.extend(self.audio_codecs[c]().parse_options(x, n))
             if audio_options is None:
                 raise ConverterError('Unknown audio codec error')
+            audioFlag = 1
 
         # Subtitle
         y = opt['subtitle']
